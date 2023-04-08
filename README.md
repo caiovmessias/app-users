@@ -32,6 +32,12 @@
 $ npm install
 ```
 
+Ports used for project:
+- 3000 (application)
+- 15672 (rabbitmq)
+- 5672 (rabbitmq)
+
+
 ## Config with Docker
 
 If you have Docker and Docker compose in your machine, follow the commands down for the up project.
@@ -42,6 +48,10 @@ If you have Docker and Docker compose in your machine, follow the commands down 
 # development
 $ docker-compose up -d
 ```
+
+### rabbitmq
+
+For access the rabbit container, access URL `http://localhost:15672`, the credentials are `admin` and `admin`.
 
 ## Config without Docker
 
