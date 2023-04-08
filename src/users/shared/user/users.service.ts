@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { User } from './user';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -22,15 +22,30 @@ export class UserService {
 
   async create(user: User) {
     if (!user.email || !user.name) {
-      return {
-        message: 'Name and Email are required',
-      };
+      throw new HttpException(
+        'Name and Email are required',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const userCadastred: User = await this.userModel
+      .findOne({ email: user.email })
+      .exec();
+
+    if (userCadastred) {
+      throw new HttpException('Mail already exists', HttpStatus.BAD_REQUEST);
     }
 
     const createdUser = new this.userModel(user);
     await createdUser.save();
 
-    await sendToRabbit('New user created in App');
+    try {
+      await sendToRabbit('New user created in App');
+    } catch (e) {
+      console.error(
+        'Error on sending message for Rabbit, probably the container is not up',
+      );
+    }
 
     const mailParams = {
       email: user.email,
@@ -46,9 +61,7 @@ export class UserService {
         mailParams.mensagem,
       );
     } catch (e) {
-      console.log(
-        'Error on sending mail, probably your mail addres is not cadastred in Mailgun',
-      );
+      console.log('error: ', e);
     } finally {
       return createdUser;
     }
@@ -57,7 +70,10 @@ export class UserService {
   async getById(id: string) {
     const response = await firstValueFrom(
       this.httpService.get(`https://reqres.in/api/users/${id}`),
-    );
+    ).catch(() => {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    });
+
     return response.data;
   }
 
@@ -74,13 +90,20 @@ export class UserService {
 
     const { data } = await firstValueFrom(
       this.httpService.get(`https://reqres.in/api/users/${id}`),
-    );
+    ).catch(() => {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    });
 
     const avatar = await firstValueFrom(
       this.httpService.get(`${data.data.avatar}`, {
         responseType: 'arraybuffer',
       }),
-    );
+    ).catch(() => {
+      throw new HttpException(
+        'Image not found in API for this user',
+        HttpStatus.NOT_FOUND,
+      );
+    });
 
     const imageBuffer = Buffer.from(avatar.data, 'binary');
     const imgHash = Date.now() + path.extname(data.data.avatar);
@@ -106,7 +129,10 @@ export class UserService {
     const img: Upload = await this.uploadModel.findOne({ userId: id }).exec();
 
     if (!img) {
-      return true;
+      throw new HttpException(
+        'Image or User not cadastred',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     await deleteFile(img.imgHash);

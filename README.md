@@ -32,7 +32,33 @@
 $ npm install
 ```
 
-## Running the app
+Ports used for project:
+- 3000 (application)
+- 15672 (rabbitmq)
+- 5672 (rabbitmq)
+
+
+## Config with Docker
+
+If you have Docker and Docker compose in your machine, follow the commands down for the up project.
+
+### Running the app
+
+```bash
+# development
+$ docker-compose up -d
+```
+
+### rabbitmq
+
+For access the rabbit container, access URL `http://localhost:15672`, the credentials are `admin` and `admin`.
+
+## Config without Docker
+
+If you don't have Docker and Docker compose in your machine, you can execute the project using the commands down.  
+Ps.: The rabbit don't work without Docker, because the configuration is hard coded in file `src/helpers/sendToRabbit.ts`.
+
+### Running the app
 
 ```bash
 # development
@@ -42,32 +68,94 @@ $ npm run start
 $ npm run start:dev
 
 # production mode
+$ npm run build
 $ npm run start:prod
 ```
 
-## Test
+## Routes
 
-```bash
-# unit tests
-$ npm run test
+Use JSON to communicate with the API.
 
-# e2e tests
-$ npm run test:e2e
+### POST /api/users
 
-# test coverage
-$ npm run test:cov
-```
+This route, create a new document in collection `Users`  at the MongoDB. 
 
-## Support
+After creation send mail to new user and create a new event queue in Rabbit.
+Ps.: The server SMTP is fake so the user don't received the Mail. 
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+#### Parameters Request  
 
-## Stay in touch
+| Parameter | Value      | Description    | Parameter Type | Data Type |
+|-----------|------------|----------------|----------------|-----------|
+| name      | (required) | The user name  | body           | string    |
+| email     | (required) | The user email | body           | string    |
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+#### Responses Status
 
-## License
+| HTTP Status | Message                     |
+|-------------|-----------------------------|
+| 201         | User created successfully   |
+| 422         | Name and Email are required |
+| 400         | Mail already exists         |
 
-Nest is [MIT licensed](LICENSE).
+
+### GET /api/user/{userId}
+
+This route make a request to API `https://reqres.in/api/users/${id}`. 
+
+#### Parameters Request  
+
+| Parameter | Value      | Description        | Parameter Type | Data Type |
+|-----------|------------|--------------------|----------------|-----------|
+| id        | (required) | The user id in API | query          | string    |
+
+#### Responses Status
+
+| HTTP Status | Message        |
+|-------------|----------------|
+| 200         | OK             |
+| 404         | User not found |
+
+### GET /api/user/{userId}/avatar
+
+This route save a image in directory `./uploads` and create a new document in collection `Uploads` at the MongoDb.
+
+If `userId` already exists in collection `Uploads` the route just return path and image in base-64. 
+
+If `userId` don't exists in collection `uploads` the route make a new request for the `https://reqres.in/api/users/${id}`, get the `avatar` and save the image in directory `./uploads` and create a new document in collection `uploads` at the MongoDb.
+
+#### Parameters Request  
+
+| Parameter | Value      | Description        | Parameter Type | Data Type |
+|-----------|------------|--------------------|----------------|-----------|
+| id        | (required) | The user id in API | query          | string    |
+
+#### Responses Status
+
+| HTTP Status | Message                              |
+|-------------|--------------------------------------|
+| 200         | Ok                                   |
+| 404         | User not found                       |
+| 404         | Image not found in API for this user |
+
+### DELETE /api/user/{userId}/avatar
+
+This route drop the file in directory `./uploads` and drop document in collection  `Uploads` at the MongoDb.
+
+#### Parameters Request  
+
+| Parameter | Value      | Description        | Parameter Type | Data Type |
+|-----------|------------|--------------------|----------------|-----------|
+| id        | (required) | The user id in API | query          | string    |
+
+#### Responses Status
+
+| HTTP Status | Message                     |
+|-------------|-----------------------------|
+| 200         | Ok                          |
+| 404         | Image or User not cadastred |
+
+## Collections
+
+In the directory `./docs/collection` have a collection for the Postman and Insomnia.
+

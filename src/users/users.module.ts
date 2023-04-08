@@ -15,17 +15,12 @@ import { UploadSchema } from './schemas/upload.schema';
     ]),
     MailerModule.forRoot({
       transport: {
-        host: 'smtp.mailgun.org',
-        secure: false,
+        host: 'sandbox.smtp.mailtrap.io',
         port: 587,
         auth: {
-          user: 'postmaster@sandboxe50bc9e68a1246b9adb063e9c41e469d.mailgun.org',
-          pass: '3a234130d410b50098fa6ea448c55b42-81bd92f8-d7b8943d',
+          user: '0c70fe3a6bab9e',
+          pass: '2f918f081a3fa1',
         },
-        ignoreTLS: true,
-      },
-      defaults: {
-        from: '"',
       },
     }),
     HttpModule,
